@@ -6,12 +6,8 @@
       "key": "PATH",
       "type": "path",
       "required": true,
-      "value": "${installPath}",
+      "value": "${installPath}/bin",
       "visibility": "public"
     }
-  ],
-  "binaries": [
-    "python",
-    "pythonw"
   ]
 }

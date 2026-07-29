@@ -143,32 +143,68 @@ variants:
 
 # Every archive wraps its content in a single `python/` directory on every
 # platform and in both flavors.
+#
+# Windows keeps that wrapper (`strip_components: 0`) where the others drop it,
+# and that is a consequence of `bin_scan:` below, not a taste. Linux and macOS
+# extract to `python/bin/…`, so stripping one level gives the interface PATH
+# entry `${installPath}/bin` — a real directory for the scan to read. The
+# Windows archive has no `bin/` at all: `python.exe`, `pythonw.exe` and the
+# DLLs sit at the archive root and `Scripts/` ships empty. Stripping there
+# would leave the only honest PATH entry as a bare `${installPath}`, which
+# offers the scan no target directory and is rejected at spec load (exit 65)
+# precisely because `auto` would otherwise publish `binaries: []` — a positive
+# claim that this package exposes no executables at all.
+#
+# Keeping the wrapper makes the Windows interface directory `${installPath}/
+# python`, which is both a valid scan target and a more faithful rendering of
+# what upstream actually ships. Consumers see no difference: PATH is composed
+# either way.
 asset_type:
-  type: archive
-  strip_components: 1
+  default:
+    type: archive
+    strip_components: 1
+  platforms:
+    windows/amd64:
+      type: archive
+      strip_components: 0
+
+# Derive the `binaries` claim from each extracted bundle instead of hand-listing
+# it. This package is the case the flag exists for: every executable it ships
+# also appears under a CPython-minor-suffixed alias (`python3.13`, `pip3.13`,
+# `idle3.13`, …), and `binaries` is one static list shared by every version a
+# spec publishes — so a hand-written list is either wrong for two of the three
+# mirrored minors or deliberately incomplete. A per-bundle scan is correct for
+# each version on its own terms.
+#
+# `auto`, not `verify`: verify checks a *declared* list against the tree and
+# fails on any executable the list omits, so it demands the complete list —
+# which is exactly the version-dependent thing that cannot be written down
+# here. With no declared list the two modes behave identically anyway, and
+# `auto` is the honest spelling of "derive it".
+#
+# What still catches upstream rearranging the archive is tests/smoke.star,
+# which runs the interpreter rather than reading the claim.
+bin_scan: auto
 
 metadata:
   # Linux and macOS share an identical `python/bin/` layout. Windows has no
   # `bin/` at all — `python.exe`, `pythonw.exe` and the DLLs sit at the
   # archive root and `Scripts/` ships empty — so it needs its own PATH entry
-  # and its own (much shorter) `binaries` claim.
+  # and its own interface directory (see `asset_type` above).
   #
-  # Both `binaries` claims are taken from `tar tvf` of a real archive, and
-  # both deliberately omit the CPython-minor-suffixed aliases that sit beside
-  # the names they declare (`python3.13`, `python3.13-config`, `pip3.13`,
-  # `idle3.13`, `pydoc3.13`). `binaries` is one static list shared by every
-  # version this spec publishes, so declaring 3.13's spellings would be a
-  # false claim on a 3.12 or 3.14 bundle. The unversioned names are present
-  # in every minor and are what the declaration covers.
-  #
-  # `bin_scan` is deliberately not set (it defaults to `off`). An auto-scan
-  # would rediscover the CPython-minor-suffixed aliases this claim excludes
-  # on purpose, so it would have to be re-curated on every minor bump — and
-  # the hand-derived list above already comes from a real `tar tvf`, not from
-  # a README.
+  # Neither file declares `binaries` — `bin_scan: auto` fills it per bundle.
+  # The gate checks EVERY file this block can select, so metadata-windows.json
+  # has to carry a scan target of its own; that is what the Windows
+  # `strip_components: 0` override buys.
   default: metadata.json
   platforms:
     windows/amd64: metadata-windows.json
+
+catalog:
+  # Resolves against this spec's own directory, so the repo-root logo shared by
+  # every future astral-sh spec has to be named explicitly. CATALOG.md is found
+  # by the default probe beside this file.
+  logo: ../logo.svg
 
 skip_prereleases: true
 cascade: true
@@ -221,8 +257,11 @@ tests:
   # (`slim-3.13.14+20260728` is its own plan version), so this script already
   # runs once per (version, platform, variant) leg, and the two flavors ship
   # identical file sets so there is no second contract to assert.
+  #
+  # `script:` resolves from the REPOSITORY ROOT, not from this spec's own
+  # directory — the opposite of `metadata.default` and `catalog.*` just above.
   - name: smoke
-    script: tests/smoke.star
+    script: python-build-standalone/tests/smoke.star
 
 platforms:
   "linux/amd64+libc.glibc":
@@ -260,11 +299,11 @@ annotations:
   # Astral's build recipes. See NOTICE.md for the full stack.
   org.opencontainers.image.licenses: "PSF-2.0 AND MPL-2.0"
 
+announce:
+  package: astral-sh/python-build-standalone
+  fork: ocx-contrib/index
+
 notify:
   discord:
     webhook_secret: OCX_MIRROR_DISCORD_HOOK
     user_id: "227748867204972545"  # pinged in-message on failures
-
-announce:
-  package: astral-sh/python-build-standalone
-  fork: ocx-contrib/index
