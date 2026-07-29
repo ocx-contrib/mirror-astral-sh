@@ -209,14 +209,34 @@ catalog:
 skip_prereleases: true
 cascade: true
 
-# `none` is forced here, not chosen. An ocx version is `<python>+<build_date>`
-# (`3.13.14+20260728`), which already carries semver build metadata, and
-# `date`/`datetime` reject a version that has one rather than double-stamping
-# it — those versions would be silently dropped from every plan. The GC hazard
-# a build timestamp guards against does not arise for the version tag anyway:
-# upstream never re-releases a (python_version, build_date) pair, so each
-# version tag is written exactly once and never re-pointed. Only the rolling
-# cascade aliases move, which is inherent to cascading.
+# The fleet rule is `build_timestamp: date`. This spec is the exception, and
+# `none` is forced rather than preferred — the renderer's own warning about it
+# is answered below, not ignored.
+#
+# An ocx version here is `<python>+<upstream_build_date>` (`3.13.14+20260728`),
+# which already carries semver build metadata. `normalize_version` rejects a
+# version that has one instead of double-stamping it, and `plan` swallows that
+# error as "skip this version". So `date` does not merely add a redundant
+# stamp — it empties the mirror. Measured, with the only change being this key:
+#
+#   $ ocx-mirror package check --dry-run ./python-build-standalone/mirror.yml
+#   WARN Skipping version 3.12.13+20260728: version '3.12.13+20260728' already
+#        has build metadata                        (× 6, once per plan version)
+#   INFO Nothing to mirror
+#
+# The rule's *intent* is still met, by the upstream date rather than a
+# mirror-side one: `date` exists so every build also lands under a
+# never-repointed `X.Y.Z_<stamp>` tag that GC cannot orphan out from under an
+# `ocx.lock` pin. That is exactly what `3.13.14_20260728` already is — upstream
+# never re-releases a (python_version, build_date) pair, so each version tag is
+# written once. Only the rolling cascade aliases move, which is inherent to
+# cascading and true under `date` too.
+#
+# ponytail: one residual gap, narrower than the one `date` closes. Re-mirroring
+# an already-published (version, platform) — as the pending Windows rebuild
+# will — re-points that version tag and orphans its prior digest. Nothing
+# consumes this mirror yet; if that changes, the fix is to stop re-mirroring
+# published versions, not to add a stamp the plan discards.
 build_timestamp: none
 
 versions:
