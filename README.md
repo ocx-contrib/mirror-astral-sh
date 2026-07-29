@@ -20,17 +20,31 @@ by build date and ships every supported minor under one tag, so
 patch. Which minors are mirrored, and from which patch, is the `MINOR_FLOORS`
 map in that script — the only place to change coverage.
 
-## Editing
+## Layout
+
+One directory per package, so a second astral-sh tool (`uv`, `ruff`) lands
+beside this one without renaming any generated workflow. `logo.*`, `LICENSE`
+and `NOTICE.md` are shared at the root.
 
 | File | Edit | Regenerate after |
 |------|------|------------------|
-| `mirror.yml` | hand | `ocx-mirror package pipeline generate ci` |
-| `scripts/generate.py` | hand | — |
-| `tests/smoke.star` | hand | — |
-| `metadata*.json`, `CATALOG.md`, `logo.*` | hand | — |
-| `.github/workflows/*.yml` | generated | re-run when `mirror.yml` changes |
+| `python-build-standalone/mirror.yml` | hand | `ocx-mirror package pipeline generate ci --repo-root . --spec python-build-standalone/mirror.yml` |
+| `python-build-standalone/scripts/generate.py` | hand | — |
+| `python-build-standalone/tests/smoke.star` | hand | — |
+| `python-build-standalone/{metadata*.json,CATALOG.md}`, `logo.*` | hand | — |
+| `.github/workflows/*.yml` | generated | re-run when the spec changes |
 
-CI fails on drift via `ocx-mirror package pipeline generate ci --check`.
+`--repo-root .` is required: `generate ci` otherwise infers the repository root
+as the single spec's own parent directory and writes the workflows into
+`python-build-standalone/.github/`. `verify-generated.yml` bakes its check
+command without that flag, so the drift guard currently reds — see the note in
+that file's job log. It goes green once `generate ci` defaults `--repo-root` to
+the git root (`src/command/package/pipeline/generate/ci.rs:277`).
+
+`binaries` is not hand-listed anywhere: `bin_scan: auto` derives it from each
+extracted bundle. That is why the Windows archive keeps its `python/` wrapper
+(`strip_components: 0`) while Linux and macOS drop theirs — the scan needs a
+`${installPath}/<dir>` target, and the Windows archive has no `bin/`.
 
 ## Required secrets
 

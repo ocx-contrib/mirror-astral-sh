@@ -3,7 +3,7 @@ lock_version = 2
 declaration_hash_version = 1
 declaration_hash = "sha256:9e7c07c1e028c96f27091676254c20fe1d5281385d98ad3c87f06c5ca4aa7061"
 generated_by = "ocx 0.4.3"
-generated_at = "2026-07-29T00:19:05Z"
+generated_at = "2026-07-29T00:45:02Z"
 
 [[tool]]
 name = "cli"
@@ -24,12 +24,12 @@ group = "default"
 repository = "dev.ocx.sh/ocx/mirror"
 
 [tool.platforms]
-"darwin/amd64" = "sha256:599f2a6dc7a2765b4e105558cd0062acf0c6619ac173200e3305a0f7affb98de"
-"darwin/arm64" = "sha256:90ea94a68142fc03301abd280172f4b974b37411e08a63157b4d39b0ebfd37eb"
-"linux/amd64" = "sha256:7ef3e4af50082ed01d9595b7c7cc8b552a0d9ee5bfbd3005bed8b1dbfbc97885"
-"linux/arm64" = "sha256:bb56a2f82c290081b6776d9584607d6319e8554b9a9356be4f4e1d018ceead76"
-"windows/amd64" = "sha256:dd4a298cc39d3183169b80302b3c56423ca81b1bad654e675561af5907364656"
-"windows/arm64" = "sha256:1911cd93d584a3b45b089d1eb754724571a1c91a17c6f93f1453a1bc820bd2d9"
+"darwin/amd64" = "sha256:cc411f834acebe4e007a7936f63c79b982079d1fba70b52e7161b248d2e4ef52"
+"darwin/arm64" = "sha256:3506a4b1cfc63e5b9b0a042f555e2fcc4e4ab46f6004794b909e8cb718b00502"
+"linux/amd64" = "sha256:00ae6b9f9b9fa3300518c1a59ef289457bd82eb540ad8618dd490fef3aec52c1"
+"linux/arm64" = "sha256:1c46c535893b7336b40c3a40d9cc674fcacfea1f9a718d1aa280f1c84190fba1"
+"windows/amd64" = "sha256:f489099488aeb0bb39501e980323b9d1fb440d84c4b0c07c6edc64b3b0a888bb"
+"windows/arm64" = "sha256:e838cdfba297b8c9701d4947a72b56fe6469721e463ad18852fe3a2191f770ee"
 
 [[tool]]
 name = "uv"
@@ -37,9 +37,9 @@ group = "default"
 repository = "ocx.sh/uv"
 
 [tool.platforms]
-"darwin/amd64" = "sha256:ffee196e71773fe4a3d1c180221804ccccd814ac7036eab6066907abe9a7072c"
-"darwin/arm64" = "sha256:a2c8370dd8f2ca5bb09867dd43c5ecb0c19bdf75a626921eea4265da803b23cd"
-"linux/amd64" = "sha256:97447c9d5e7d13ca11f99d5d386a2ed75c63a48fb4bcac401b56ff6367d4d152"
-"linux/arm64" = "sha256:4cd2c695b5310a60310f97bb80de94a2379e2b4ab4bb19d455f6f7aaf0aec0af"
-"windows/amd64" = "sha256:4c3dc7fc3b155a374f289ea02abd7742650cb9fb9fc607277ff9afceb6302b9f"
-"windows/arm64" = "sha256:dc121070eaf47f3b5ccf33d4171b722d11e459e8fc5ac13bdc34f203371c610b"
+"darwin/amd64" = "sha256:6597af2da85f927708f9a205bed96b21798fe7bfdc53cb18964714be9c819367"
+"darwin/arm64" = "sha256:a7c4aa5a2c4483cbc46064fe248c297c1b1049dff6fe809632e40139c340c69d"
+"linux/amd64" = "sha256:f41c91d5214b5880baedf2c5fe9cf89ada0b6b96b2a8945a9954d88edf8526a8"
+"linux/arm64" = "sha256:7fbe9108fb899cd6f74372a0b434b5e67d7c2e326857b1a56e628decb411ea24"
+"windows/amd64" = "sha256:e072894fa46565594b9ac69f68b5bdf341b58f0637744508e6a93d9065f22682"
+"windows/arm64" = "sha256:e7a2e7d1e633e85295136eeb8d8f31a82712b455dcf871f3a9cc7526e845cf1d"

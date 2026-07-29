@@ -6,17 +6,8 @@
       "key": "PATH",
       "type": "path",
       "required": true,
-      "value": "${installPath}/bin",
+      "value": "${installPath}/python",
       "visibility": "public"
     }
-  ],
-  "binaries": [
-    "idle3",
-    "pip",
-    "pip3",
-    "pydoc3",
-    "python",
-    "python3",
-    "python3-config"
   ]
 }
