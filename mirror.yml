@@ -1,0 +1,251 @@
+name: python-build-standalone
+
+# Logical index package `astral-sh/python-build-standalone` lives at the
+# physical path `ghcr.io/ocx-contrib/astral-sh/python-build-standalone` —
+# slash segments, never hyphen-flattened. The namespace names the
+# *distributor whose bytes we ship* (Astral), not CPython's author: these are
+# Astral's relocatable builds, and the provenance belongs to them.
+target:
+  registry: ghcr.io
+  repository: ocx-contrib/astral-sh/python-build-standalone
+
+# `url_index`, not `github_release`, and this is not a preference.
+#
+# Upstream tags a *release* by build date (`20260728`) and ships EVERY
+# supported CPython minor under that one tag — 3.10.20, 3.11.15, 3.12.13,
+# 3.13.14, 3.14.6 and a 3.15 beta all live in tag 20260728. A
+# `github_release` source maps one tag to one version and requires each
+# platform regex to match exactly one asset; here a per-triple regex matches
+# six assets and resolution fails as ambiguous. The generator explodes each
+# release into one ocx version per (python_version, build_date) pair so each
+# version owns only its own tarballs.
+source:
+  type: url_index
+  generator:
+    command: ["uv", "run", "scripts/generate.py"]
+    timeout_seconds: 300
+
+# ─── libc gate (Phase 3.5) — the evidence, not the conclusion ───────────────
+#
+# Upstream ships genuinely different gnu and musl builds for both Linux
+# arches, and BOTH are dynamically linked against their own loader. Measured
+# on 3.13.14+20260728, `python/bin/python3.13` from each install_only tarball:
+#
+#   $ file …-x86_64-unknown-linux-gnu-install_only/python/bin/python3.13
+#   ELF 64-bit LSB executable, x86-64, dynamically linked,
+#   interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.32
+#   $ ldd … → libpthread libdl libutil librt libm libc  (all glibc, nothing else)
+#
+#   $ file …-x86_64-unknown-linux-musl-install_only/python/bin/python3.13
+#   ELF 64-bit LSB pie executable, x86-64, dynamically linked,
+#   interpreter /lib/ld-musl-x86_64.so.1
+#   $ readelf -d … | grep NEEDED → [libc.so]
+#
+#   $ file …-aarch64-unknown-linux-gnu-install_only/python/bin/python3.13
+#   … interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0
+#   $ file …-aarch64-unknown-linux-musl-install_only/python/bin/python3.13
+#   … interpreter /lib/ld-musl-aarch64.so.1
+#
+# Neither is static, so neither covers the other: the four Linux keys carry
+# `+libc.glibc` / `+libc.musl` and each publishes its own image-index entry.
+# The `platforms:` block below tests each key under a matching userland —
+# that is what turns the `os.features` claim into evidence rather than a
+# promise the artifact cannot keep.
+#
+# ─── Scope (Phase 2, verified against release 20260728) ─────────────────────
+#
+# Upstream DOES publish, and this mirror deliberately does not carry:
+#   armv7-unknown-linux-gnueabi{,hf}, ppc64le-unknown-linux-gnu,
+#   riscv64-unknown-linux-gnu, s390x-unknown-linux-gnu   — no GHA runner
+#   i686-pc-windows-msvc                                 — 32-bit, no ocx platform key
+#   aarch64-pc-windows-msvc                              — install_only DOES exist
+#       (`cpython-3.13.14+20260728-aarch64-pc-windows-msvc-install_only.tar.gz`);
+#       held back only to keep the first matrix affordable (Windows minutes
+#       are 2×, and this spec already fans out ×2 for variants). Adding it is
+#       a `windows/arm64` entry in each variant's `assets:` plus a
+#       `runner: windows-11-arm` platform — nothing else.
+#   x86_64_v2/v3/v4-*                                    — micro-arch levels;
+#       OCX has no sub-arch key, so publishing them would need a variant axis
+#       that means something different from this spec's build-flavor axis.
+#   *-freethreaded-*                                     — a different ABI
+#       (no GIL), not a build flavor of the same interpreter.
+#   *-debug-full, *-pgo+lto-full, *-lto-full, *-noopt-full — `.tar.zst`
+#       development artifacts, not redistributable runtimes.
+#
+# The anchored `^…$` regexes are what keep those out: the literal triple text
+# differs in every case (`x86_64_v2-unknown-…` never matches
+# `x86_64-unknown-…`), `-freethreaded-install_only` never matches
+# `-install_only$`, and `install_only_stripped.tar.gz` never matches
+# `install_only\.tar\.gz$`.
+
+# Two build flavors from the same upstream release, per upstream's own
+# recommendation (docs/running.md: `install_only` is the default archive,
+# `install_only_stripped` the minimal one):
+#
+#   default (unnamed) → install_only          → bare tags (3.13.14+20260728, …)
+#   slim              → install_only_stripped → slim-prefixed tags
+#
+# Both are `.tar.gz`; every other flavor upstream publishes is `.tar.zst`.
+# Their member lists are IDENTICAL (verified: `diff` of the two `tar tf`
+# listings for 3.13.14+20260728 x86_64-unknown-linux-gnu is empty) — slim
+# differs only in that debug symbols are stripped from the shipped binaries,
+# ~118 MB → ~35 MB on that pair. That is why one `metadata.json` and one
+# `tests/smoke.star` are the whole contract for both.
+variants:
+  - default: true
+    assets:
+      "linux/amd64+libc.glibc":
+        - "^cpython-.*-x86_64-unknown-linux-gnu-install_only\\.tar\\.gz$"
+      "linux/amd64+libc.musl":
+        - "^cpython-.*-x86_64-unknown-linux-musl-install_only\\.tar\\.gz$"
+      "linux/arm64+libc.glibc":
+        - "^cpython-.*-aarch64-unknown-linux-gnu-install_only\\.tar\\.gz$"
+      "linux/arm64+libc.musl":
+        - "^cpython-.*-aarch64-unknown-linux-musl-install_only\\.tar\\.gz$"
+      # macOS is per-arch only — there is no universal2 asset upstream
+      # (verified against 20260728: aarch64-apple-darwin and
+      # x86_64-apple-darwin, nothing else).
+      darwin/amd64:
+        - "^cpython-.*-x86_64-apple-darwin-install_only\\.tar\\.gz$"
+      darwin/arm64:
+        - "^cpython-.*-aarch64-apple-darwin-install_only\\.tar\\.gz$"
+      windows/amd64:
+        - "^cpython-.*-x86_64-pc-windows-msvc-install_only\\.tar\\.gz$"
+  - name: slim
+    assets:
+      "linux/amd64+libc.glibc":
+        - "^cpython-.*-x86_64-unknown-linux-gnu-install_only_stripped\\.tar\\.gz$"
+      "linux/amd64+libc.musl":
+        - "^cpython-.*-x86_64-unknown-linux-musl-install_only_stripped\\.tar\\.gz$"
+      "linux/arm64+libc.glibc":
+        - "^cpython-.*-aarch64-unknown-linux-gnu-install_only_stripped\\.tar\\.gz$"
+      "linux/arm64+libc.musl":
+        - "^cpython-.*-aarch64-unknown-linux-musl-install_only_stripped\\.tar\\.gz$"
+      darwin/amd64:
+        - "^cpython-.*-x86_64-apple-darwin-install_only_stripped\\.tar\\.gz$"
+      darwin/arm64:
+        - "^cpython-.*-aarch64-apple-darwin-install_only_stripped\\.tar\\.gz$"
+      windows/amd64:
+        - "^cpython-.*-x86_64-pc-windows-msvc-install_only_stripped\\.tar\\.gz$"
+
+# Every archive wraps its content in a single `python/` directory on every
+# platform and in both flavors.
+asset_type:
+  type: archive
+  strip_components: 1
+
+metadata:
+  # Linux and macOS share an identical `python/bin/` layout. Windows has no
+  # `bin/` at all — `python.exe`, `pythonw.exe` and the DLLs sit at the
+  # archive root and `Scripts/` ships empty — so it needs its own PATH entry
+  # and its own (much shorter) `binaries` claim.
+  #
+  # Both `binaries` claims are taken from `tar tvf` of a real archive, and
+  # both deliberately omit the CPython-minor-suffixed aliases that sit beside
+  # the names they declare (`python3.13`, `python3.13-config`, `pip3.13`,
+  # `idle3.13`, `pydoc3.13`). `binaries` is one static list shared by every
+  # version this spec publishes, so declaring 3.13's spellings would be a
+  # false claim on a 3.12 or 3.14 bundle. The unversioned names are present
+  # in every minor and are what the declaration covers.
+  default: metadata.json
+  platforms:
+    windows/amd64: metadata-windows.json
+
+skip_prereleases: true
+cascade: true
+
+# `none` is forced here, not chosen. An ocx version is `<python>+<build_date>`
+# (`3.13.14+20260728`), which already carries semver build metadata, and
+# `date`/`datetime` reject a version that has one rather than double-stamping
+# it — those versions would be silently dropped from every plan. The GC hazard
+# a build timestamp guards against does not arise for the version tag anyway:
+# upstream never re-releases a (python_version, build_date) pair, so each
+# version tag is written exactly once and never re-pointed. Only the rolling
+# cascade aliases move, which is inherent to cascading.
+build_timestamp: none
+
+versions:
+  # The durable series floor: this mirror never publishes anything older than
+  # the 3.12 line. The per-minor *patch* floors that keep first-run bootstrap
+  # small live in scripts/generate.py (MINOR_FLOORS) — the one place to change
+  # coverage.
+  #
+  # It is deliberately a `.0`, not the current patch. `Version`'s ordering
+  # sorts a version carrying build metadata BELOW the same version without it
+  # (`Some(build) < None`, `ocx_lib/src/package/version.rs`), so a floor of
+  # "3.12.13" silently drops `3.12.13+20260728` — observed on `package check`,
+  # which reported 4 versions instead of 6.
+  min: "3.12.0"
+  # 3 CPython minors × 2 variants = 6 plan versions per upstream release.
+  new_per_run: 6
+  # Staggered off the hour against the rest of the fleet.
+  poll_interval: "25 */6 * * *"
+
+# `github_asset_digest` is a github_release-source option; a url_index source
+# has no digest to read back, and upstream's SHA256SUMS asset is not wired as
+# a `checksums_file` because the generator emits per-asset URLs rather than a
+# checksum manifest. Downloads are HTTPS from the GitHub release CDN.
+
+concurrency:
+  # Assets are 22–120 MB and each bundle re-compresses ~100 MB of content;
+  # these limits are mirror-cpython's, proven against this exact upstream.
+  max_downloads: 4
+  max_bundles: 2
+  max_pushes: 2
+  rate_limit_ms: 200
+  max_retries: 3
+  compression_threads: 0
+
+tests:
+  # One script for both variants. `tests:` has no per-variant axis and does
+  # not need one here: ocx-mirror folds the variant into the *version* axis
+  # (`slim-3.13.14+20260728` is its own plan version), so this script already
+  # runs once per (version, platform, variant) leg, and the two flavors ship
+  # identical file sets so there is no second contract to assert.
+  - name: smoke
+    script: tests/smoke.star
+
+platforms:
+  "linux/amd64+libc.glibc":
+    runner: ubuntu-latest
+    containers:
+      - { image: "ubuntu:24.04", shell: bash }
+      - { image: "fedora:40",    shell: bash }
+  "linux/amd64+libc.musl":
+    runner: ubuntu-latest
+    containers:
+      - { image: "alpine:3.20", shell: sh }
+  "linux/arm64+libc.glibc":
+    # arm64 container legs run natively — no qemu — so the runner arch must
+    # match the platform or the renderer's guard reds the leg up front.
+    runner: ubuntu-24.04-arm
+    containers:
+      - { image: "ubuntu:24.04", shell: bash }
+      - { image: "fedora:40",    shell: bash }
+  "linux/arm64+libc.musl":
+    runner: ubuntu-24.04-arm
+    containers:
+      - { image: "alpine:3.20", shell: sh }
+  darwin/amd64:
+    # Intel slice tested on the arm64 macos-14 runner via Rosetta 2 (GitHub's
+    # macos-13 Intel pool is exhausted and deadlocks the push job).
+    runner: macos-14
+  darwin/arm64:
+    runner: macos-14
+  windows/amd64:
+    runner: windows-latest
+    shell: pwsh
+
+annotations:
+  # The redistributed bytes are CPython under the PSF licence; MPL-2.0 covers
+  # Astral's build recipes. See NOTICE.md for the full stack.
+  org.opencontainers.image.licenses: "PSF-2.0 AND MPL-2.0"
+
+notify:
+  discord:
+    webhook_secret: OCX_MIRROR_DISCORD_HOOK
+    user_id: "227748867204972545"  # pinged in-message on failures
+
+announce:
+  package: astral-sh/python-build-standalone
+  fork: ocx-contrib/index

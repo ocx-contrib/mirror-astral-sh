@@ -1,0 +1,22 @@
+{
+  "type": "bundle",
+  "version": 1,
+  "env": [
+    {
+      "key": "PATH",
+      "type": "path",
+      "required": true,
+      "value": "${installPath}/bin",
+      "visibility": "public"
+    }
+  ],
+  "binaries": [
+    "idle3",
+    "pip",
+    "pip3",
+    "pydoc3",
+    "python",
+    "python3",
+    "python3-config"
+  ]
+}

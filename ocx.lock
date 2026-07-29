@@ -1,0 +1,45 @@
+[metadata]
+lock_version = 2
+declaration_hash_version = 1
+declaration_hash = "sha256:9e7c07c1e028c96f27091676254c20fe1d5281385d98ad3c87f06c5ca4aa7061"
+generated_by = "ocx 0.4.3"
+generated_at = "2026-07-29T00:19:05Z"
+
+[[tool]]
+name = "cli"
+group = "default"
+repository = "dev.ocx.sh/ocx/cli"
+
+[tool.platforms]
+"darwin/amd64" = "sha256:ebf56635b1ac4e484d3da88fffb43fca9ffbdcbdaa9643d95897b1f27b44e098"
+"darwin/arm64" = "sha256:44996a5ee27d7df1027750e8372123e833924b971a83611ffa8a30af9f4b5e2e"
+"linux/amd64" = "sha256:60c9c656ef15df4ceb389e222d5ba827324d1acf76cd61058ba6506e771f1eba"
+"linux/arm64" = "sha256:73ec55bc6e2037fb60fb14b85ce240497a2a9f1104db19c90da5fc29d555a240"
+"windows/amd64" = "sha256:0052515b561bcea3f46b6b5de89a1b2b35c6785fe868acb78541dfdc7cfe97ee"
+"windows/arm64" = "sha256:d165d29bc6224412cb25e5a7882c6a2d52383034d0957a877e5f273497d5fd60"
+
+[[tool]]
+name = "mirror"
+group = "default"
+repository = "dev.ocx.sh/ocx/mirror"
+
+[tool.platforms]
+"darwin/amd64" = "sha256:599f2a6dc7a2765b4e105558cd0062acf0c6619ac173200e3305a0f7affb98de"
+"darwin/arm64" = "sha256:90ea94a68142fc03301abd280172f4b974b37411e08a63157b4d39b0ebfd37eb"
+"linux/amd64" = "sha256:7ef3e4af50082ed01d9595b7c7cc8b552a0d9ee5bfbd3005bed8b1dbfbc97885"
+"linux/arm64" = "sha256:bb56a2f82c290081b6776d9584607d6319e8554b9a9356be4f4e1d018ceead76"
+"windows/amd64" = "sha256:dd4a298cc39d3183169b80302b3c56423ca81b1bad654e675561af5907364656"
+"windows/arm64" = "sha256:1911cd93d584a3b45b089d1eb754724571a1c91a17c6f93f1453a1bc820bd2d9"
+
+[[tool]]
+name = "uv"
+group = "default"
+repository = "ocx.sh/uv"
+
+[tool.platforms]
+"darwin/amd64" = "sha256:ffee196e71773fe4a3d1c180221804ccccd814ac7036eab6066907abe9a7072c"
+"darwin/arm64" = "sha256:a2c8370dd8f2ca5bb09867dd43c5ecb0c19bdf75a626921eea4265da803b23cd"
+"linux/amd64" = "sha256:97447c9d5e7d13ca11f99d5d386a2ed75c63a48fb4bcac401b56ff6367d4d152"
+"linux/arm64" = "sha256:4cd2c695b5310a60310f97bb80de94a2379e2b4ab4bb19d455f6f7aaf0aec0af"
+"windows/amd64" = "sha256:4c3dc7fc3b155a374f289ea02abd7742650cb9fb9fc607277ff9afceb6302b9f"
+"windows/arm64" = "sha256:dc121070eaf47f3b5ccf33d4171b722d11e459e8fc5ac13bdc34f203371c610b"
