@@ -46,11 +46,24 @@ source:
 #   $ file …-aarch64-unknown-linux-musl-install_only/python/bin/python3.13
 #   … interpreter /lib/ld-musl-aarch64.so.1
 #
-# Neither is static, so neither covers the other: the four Linux keys carry
-# `+libc.glibc` / `+libc.musl` and each publishes its own image-index entry.
-# The `platforms:` block below tests each key under a matching userland —
-# that is what turns the `os.features` claim into evidence rather than a
-# promise the artifact cannot keep.
+# Neither is static, so neither covers the other. Confirmed by running the
+# extracted trees under both userlands — all four cells, not just the two
+# that pass:
+#
+#   docker run alpine:3.20  <gnu>/bin/python3 --version → sh: not found (127)
+#   docker run ubuntu:24.04 <gnu>/bin/python3 --version → Python 3.13.14 (0)
+#   docker run alpine:3.20  <musl>/bin/python3 --version → Python 3.13.14 (0)
+#   docker run ubuntu:24.04 <musl>/bin/python3 --version → sh: not found (127)
+#
+# "not found" on a path that plainly exists is the loader reporting the
+# missing *interpreter*, not a missing binary — the standard misdiagnosis.
+#
+# So the four Linux keys carry `+libc.glibc` / `+libc.musl` and each
+# publishes its own image-index entry. The `platforms:` block below tests
+# each key under a matching userland — that is what turns the `os.features`
+# claim into evidence rather than a promise the artifact cannot keep, and it
+# is why the musl key must NOT get a glibc leg (row 4 shows that leg would
+# red on a correct artifact) and the glibc key must NOT get an alpine one.
 #
 # ─── Scope (Phase 2, verified against release 20260728) ─────────────────────
 #
@@ -147,6 +160,12 @@ metadata:
   # version this spec publishes, so declaring 3.13's spellings would be a
   # false claim on a 3.12 or 3.14 bundle. The unversioned names are present
   # in every minor and are what the declaration covers.
+  #
+  # `bin_scan` is deliberately not set (it defaults to `off`). An auto-scan
+  # would rediscover the CPython-minor-suffixed aliases this claim excludes
+  # on purpose, so it would have to be re-curated on every minor bump — and
+  # the hand-derived list above already comes from a real `tar tvf`, not from
+  # a README.
   default: metadata.json
   platforms:
     windows/amd64: metadata-windows.json
