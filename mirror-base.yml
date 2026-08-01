@@ -1,0 +1,133 @@
+# Repo-wide policy for Astral's own Rust CLIs — uv, ruff, ty.
+#
+# NOT a spec: it has no name/target/source and is never loaded on its own.
+# Everything a package owns (name, target, source, assets, asset_type,
+# metadata, catalog, tests, versions, announce, annotations) stays in that
+# package's own file.
+#
+# python-build-standalone/ deliberately does NOT extend this. It needs
+# `build_timestamp: none` (its versions already carry +YYYYMMDD build metadata,
+# and `date` would empty the mirror), far lower concurrency limits for its
+# 22-120 MB assets, and a different platform set. Wiring it in would force it
+# to restate every one of those blocks for no gain.
+#
+# ⚠️ `extends:` is a SHALLOW merge of top-level keys. A spec that sets a key
+# below replaces that block OUTRIGHT — there is no per-key merge. `platforms:`
+# is where this bites: it carries BOTH the runner matrix and the container
+# legs, so a child that restates it to tweak one runner silently drops every
+# `containers:` entry. Nothing reds — the legs simply stop existing, and every
+# os.features claim in that spec goes back to being merely asserted. Four fleet
+# specs shipped that way. Restate `platforms:` IN FULL or not at all.
+
+skip_prereleases: true
+cascade: true
+
+# The fleet rule. A cascade tag re-points on every re-publish; without a build
+# segment the new manifest reuses the bare version tag and orphans the prior
+# digest for GC, breaking any @sha256: pin in a consumer's ocx.lock. These three
+# tools version as bare semver, so there is no +build segment to collide with.
+build_timestamp: date
+
+verify:
+  github_asset_digest: true
+
+concurrency:
+  # Assets are 10-50 MB single binaries — an order of magnitude smaller than
+  # python-build-standalone's, so these limits are the mirror-uv defaults
+  # already proven against this exact upstream.
+  max_downloads: 8
+  max_bundles: 4
+  max_pushes: 2
+  rate_limit_ms: 100
+  max_retries: 3
+  compression_threads: 0
+
+# ─── Platform matrix — shared because all three tools measured IDENTICALLY ───
+#
+# The per-package libc gate (file/readelf/ldd on the real artifacts, recorded
+# above each spec's `assets:` block) returned the same verdict for uv, ruff and
+# ty: upstream ships a glibc-linked gnu build and a FULLY STATIC musl build for
+# both Linux arches. Both are mirrored — but NOT as a glibc/musl pair.
+#
+# ⚠️ `os.features` states what the artifact REQUIRES OF THE HOST. It is not a
+# label for how the artifact was built. So:
+#
+#   - the gnu build genuinely needs a glibc loader → `+libc.glibc`
+#   - the static musl build needs NOTHING — it carries its own libc and has no
+#     PT_INTERP at all → a BARE key, with no feature suffix
+#
+# Tagging the static build `+libc.musl` would be a false requirement: it would
+# claim the artifact needs a musl userland, which hides it from every glibc
+# host even though it runs there perfectly. Empty `os.features` is the honest
+# statement "requires nothing", and it is the whole point of shipping a static
+# binary.
+#
+# Resolution then does the right thing on its own, deterministically — matching
+# is subset-based and scored by specificity (`compatibility_score` returns
+# `os_features.len()` as its last component, and `select_best` takes the max;
+# ocx's own test asserts "(1,1) must outrank (1,0)"):
+#
+#   glibc host → both keys are compatible, `+libc.glibc` scores higher → wins
+#                outright, no ambiguity. Gets the build native to its userland.
+#   musl host  → `+libc.glibc` is incompatible; only the bare key matches.
+#                Gets the static build.
+#
+# Container legs follow from what each key CLAIMS, and are the only mechanism
+# that turns a claim into evidence:
+#   - the bare key claims universality, so it must prove it: ubuntu + alpine +
+#     fedora. The alpine leg is the entire proof; drop it and the universal
+#     claim is merely asserted.
+#   - the `+libc.glibc` key claims glibc only: ubuntu + fedora, NO alpine — the
+#     gnu build cannot load under musl, so an alpine leg would red on a
+#     correct artifact.
+#
+# A new astral-sh package whose libc measurement differs must restate this
+# whole block in its own spec — see the shallow-merge warning at the top.
+platforms:
+  # The static musl build — requires nothing, so no feature suffix.
+  linux/amd64:
+    runner: ubuntu-latest
+    containers:
+      - { image: "ubuntu:24.04", shell: bash }
+      - { image: "alpine:3.20",  shell: sh }
+      - { image: "fedora:40",    shell: bash }
+  # The gnu build — genuinely requires a glibc loader.
+  "linux/amd64+libc.glibc":
+    runner: ubuntu-latest
+    containers:
+      - { image: "ubuntu:24.04", shell: bash }
+      - { image: "fedora:40",    shell: bash }
+  linux/arm64:
+    # arm64 container legs run natively — no qemu — so the runner arch must
+    # match the platform or the renderer reds the leg up front.
+    runner: ubuntu-24.04-arm
+    containers:
+      - { image: "ubuntu:24.04", shell: bash }
+      - { image: "alpine:3.20",  shell: sh }
+      - { image: "fedora:40",    shell: bash }
+  "linux/arm64+libc.glibc":
+    runner: ubuntu-24.04-arm
+    containers:
+      - { image: "ubuntu:24.04", shell: bash }
+      - { image: "fedora:40",    shell: bash }
+  darwin/amd64:
+    # Intel slice tested on the arm64 macos-14 runner via Rosetta 2 — GitHub's
+    # native macos-13 Intel pool is exhausted and deadlocks the push job.
+    runner: macos-14
+    prefix: ["arch", "-x86_64"]
+  darwin/arm64:
+    runner: macos-14
+    shell: bash
+  windows/amd64:
+    runner: windows-latest
+    shell: pwsh
+  windows/arm64:
+    runner: windows-11-arm
+    shell: pwsh
+  # No `containers:` on darwin or windows — those runners have no Linux
+  # container engine, and the key is rejected at spec load.
+
+notify:
+  discord:
+    webhook_secret: OCX_MIRROR_DISCORD_HOOK
+    user_id: "227748867204972545"  # pinged in-message on failures
