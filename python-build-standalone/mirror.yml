@@ -201,10 +201,18 @@ metadata:
     windows/amd64: metadata-windows.json
 
 catalog:
-  # Resolves against this spec's own directory, so the repo-root logo shared by
-  # every future astral-sh spec has to be named explicitly. CATALOG.md is found
-  # by the default probe beside this file.
-  logo: ../logo.svg
+  # Resolves against this spec's own directory. The logo lives here rather than
+  # at the repo root because it is NOT shared: it is the CPython/PSF two-snake
+  # mark, which belongs to this package alone — the sibling astral-sh specs
+  # (uv, ruff, ty) carry Astral's own marks in their own directories.
+  #
+  # Keeping it beside the spec also puts it inside this workflow's `paths:`
+  # trigger (`python-build-standalone/**`), so replacing the logo actually
+  # re-runs describe. A repo-root logo.* is in no path filter at all and
+  # changes to it would publish nothing until some other edit happened to fire.
+  #
+  # CATALOG.md is found by the default probe beside this file.
+  logo: logo.svg
 
 skip_prereleases: true
 cascade: true
