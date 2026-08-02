@@ -12,12 +12,14 @@ per `(version, platform)`, then announces the result into the OCX index as
 | [`ruff/`](ruff/) | [astral-sh/ruff](https://github.com/astral-sh/ruff) | `ocx.sh/astral-sh/ruff` | `MIT` |
 | [`ty/`](ty/) | [astral-sh/ty](https://github.com/astral-sh/ty) | `ocx.sh/astral-sh/ty` | `MIT` |
 
-> **Two different things are called "uv" here.** The `[tools] uv = "ocx.sh/uv:0"`
-> entry in `ocx.toml` is a **build-time** dependency — the CLI that runs
-> `python-build-standalone/scripts/generate.py`. It is unrelated to the `uv/`
-> package this repo mirrors. Separately, `ocx-contrib/mirror-uv` still publishes
-> the same upstream to the older flat coordinate `ocx.sh/uv`; both are live, and
-> `uv/`'s version floor is deliberately kept in step with it.
+> **Two different things are called "uv" here.** The
+> `[tools] uv = "ocx.sh/astral-sh/uv:0"` entry in `ocx.toml` is a **build-time**
+> dependency — the CLI that runs `python-build-standalone/scripts/generate.py`.
+> It is unrelated to the `uv/` package this repo mirrors, though it now resolves
+> to it: the toolchain entry points at this repo's own published package.
+> `ocx-contrib/mirror-uv` still serves the older flat coordinate `ocx.sh/uv`, but
+> that repo is slated for deletion and the flat name dies with the `ocx.sh` host
+> — **never pin `ocx.sh/uv:0` in new work.**
 
 ## Layout
 
