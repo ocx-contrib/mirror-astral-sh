@@ -150,7 +150,7 @@ versions:
   # Staggered off the other specs in this repo (uv :10, ruff :15,
   # python-build-standalone :25) so the four mirrors here do not all poll on
   # the same minute.
-  poll_interval: "20 */6 * * *"
+  poll_interval: "54 4-23/6 * * *"
 
 tests:
   # `script:` resolves from the REPOSITORY ROOT — the opposite of

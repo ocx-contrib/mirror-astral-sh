@@ -6,7 +6,7 @@ name: uv
 
 on:
   schedule:
-    - cron: '10 */6 * * *'
+    - cron: '36 1-23/6 * * *'
   workflow_dispatch:
   push:
     branches: [main]

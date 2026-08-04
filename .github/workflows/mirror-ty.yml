@@ -6,7 +6,7 @@ name: ty
 
 on:
   schedule:
-    - cron: '20 */6 * * *'
+    - cron: '54 4-23/6 * * *'
   workflow_dispatch:
   push:
     branches: [main]

@@ -164,7 +164,7 @@ versions:
   new_per_run: 5
   # Staggered off the other specs in this repo (python-build-standalone runs at
   # :25) so the four mirrors here do not all poll on the same minute.
-  poll_interval: "10 */6 * * *"
+  poll_interval: "36 1-23/6 * * *"
 
 tests:
   # `script:` resolves from the REPOSITORY ROOT — the opposite of

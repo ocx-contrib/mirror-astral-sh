@@ -262,7 +262,7 @@ versions:
   # 3 CPython minors × 2 variants = 6 plan versions per upstream release.
   new_per_run: 6
   # Staggered off the hour against the rest of the fleet.
-  poll_interval: "25 */6 * * *"
+  poll_interval: "47 3-23/6 * * *"
 
 # `github_asset_digest` is a github_release-source option; a url_index source
 # has no digest to read back, and upstream's SHA256SUMS asset is not wired as
