@@ -1,7 +1,7 @@
 # tests/smoke.star — stable across upstream ty releases.
 # Asserts machine-stable contracts only: exit codes, version digits, and a
-# stable diagnostic id. Never asserts diagnostic prose — the `invalid-return-type`
-# MESSAGE has been reworded within the mirrored range; the id has not.
+# diagnostic id. Never asserts diagnostic prose. The id itself was renamed
+# `invalid-return-type` -> `invalid-explicit-return` in 0.0.102; accept both.
 #
 # Every command and exit code below was verified against the real 0.0.40 (the
 # version floor) and 0.0.65 binaries.
@@ -16,12 +16,12 @@ expect.matches(r_version.stdout, r"\d+\.\d+\.\d+")
 # ── Tier 3 — the checker actually infers types ─────────────────────────────
 # A hermetic file whose declared return type contradicts what it returns.
 # Reaching a correct verdict requires the whole inference pipeline, not just
-# a parse. Exit 1 plus the stable rule id is the contract.
+# a parse. Exit 1 plus the rule id is the contract.
 ocx.write_file("bad.py", "def f(x: int) -> str:\n    return x\n")
 r_bad = ocx.run(TY, "check", "--output-format", "concise", "bad.py")
 expect.eq(r_bad.exit_code, 1)
 # Which stream carries diagnostics is not part of the contract — assert on both.
-expect.contains(r_bad.stdout + r_bad.stderr, "invalid-return-type")
+expect.matches(r_bad.stdout + r_bad.stderr, r"invalid-(return-type|explicit-return)")
 
 # The other direction — a well-typed file must PASS. Without this, a checker
 # that errored on everything (or failed to load its typeshed stubs) would
